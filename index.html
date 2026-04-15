@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>SHOP TEST FINAL</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body { background: #0b0b12; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
+        .box { background: #151521; padding: 20px; border-radius: 10px; width: 300px; margin: auto; border: 1px solid #333; }
+        input { width: 90%; padding: 10px; margin: 10px 0; background: #000; color: #fff; border: 1px solid #444; }
+        button { padding: 10px 20px; cursor: pointer; background: #00f2ff; border: none; font-weight: bold; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div id="auth-ui" class="box">
+        <h2>LOGIN / REG</h2>
+        <input type="text" id="u" placeholder="Tên tài khoản">
+        <input type="password" id="p" placeholder="Mật khẩu">
+        <br>
+        <button onclick="handle('login')">ĐĂNG NHẬP</button>
+        <button onclick="handle('reg')" style="background:#333; color:#fff;">ĐĂNG KÝ</button>
+    </div>
+    <div id="shop-ui" class="box hidden">
+        <h3 id="user-txt"></h3>
+        <h1 id="balance-txt" style="color: #ffcc00;">0đ</h1>
+        <p>Nội dung: <b id="memo-txt" style="color:#00f2ff;"></b></p>
+        <img id="qr-img" src="" style="width:200px; background:#fff; padding:5px;">
+        <br><br>
+        <button onclick="localStorage.clear(); location.reload();">THOÁT</button>
+    </div>
+
+<script>
+    const firebaseConfig = { databaseURL: "https://shopctv-61f96-default-rtdb.asia-southeast1.firebasedatabase.app/" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function handle(type) {
+        let u = document.getElementById('u').value.trim().toLowerCase();
+        let p = document.getElementById('p').value.trim();
+        if(!u) return alert("Nhập tên!");
+
+        if(type === 'reg') {
+            db.ref('users/' + u).set({ password: p, balance: 0 }).then(() => alert("Xong! Đăng nhập đi."));
+        } else {
+            localStorage.setItem('user', u);
+            loadShop(u);
+        }
+    }
+
+    function loadShop(u) {
+        document.getElementById('auth-ui').classList.add('hidden');
+        document.getElementById('shop-ui').classList.remove('hidden');
+        document.getElementById('user-txt').innerText = "Chào " + u;
+        document.getElementById('memo-txt').innerText = "NAP " + u;
+        document.getElementById('qr-img').src = `https://img.vietqr.io/image/MB-0588807300000-compact2.png?addInfo=NAP%20${u}`;
+
+        // QUÉT REALTIME: Tìm tiền dù ở bất cứ nhánh nào trong users
+        db.ref('users').on('value', s => {
+            let data = s.val();
+            for (let key in data) {
+                if (key.toLowerCase().includes(u)) {
+                    document.getElementById('balance-txt').innerText = (data[key].balance || 0).toLocaleString() + "đ";
+                    break;
+                }
+            }
+        });
+    }
+
+    const saved = localStorage.getItem('user');
+    if(saved) loadShop(saved);
+</script>
+</body>
+</html>
